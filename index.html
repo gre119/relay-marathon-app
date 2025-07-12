@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リレーマラソン管理アプリ（手動割り当て）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .lap-count-valid { color: #16a34a; } /* green-600 */
+        .lap-count-invalid { color: #dc2626; } /* red-600 */
+        .lap-count-neutral { color: #6b7280; } /* gray-500 */
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">リレーマラソン管理アプリ</h1>
+            <p class="text-gray-600 mt-2">各周回の担当者を手動で割り当て、タイムを管理します。</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左側：走行順と結果入力 -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. 走行順と結果</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-max text-left">
+                        <thead class="border-b-2 border-gray-200">
+                            <tr>
+                                <th class="p-3 text-sm font-semibold text-gray-600">周回</th>
+                                <th class="p-3 text-sm font-semibold text-gray-600">担当者</th>
+                                <th class="p-3 text-sm font-semibold text-gray-600">予想ラップ</th>
+                                <th class="p-3 text-sm font-semibold text-gray-600">実測ラップ (分:秒)</th>
+                                <th class="p-3 text-sm font-semibold text-gray-600">累計タイム</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-table-body">
+                            <!-- 走行順はJSで動的に生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 右側：サマリーとカウンター -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">2. サマリー</h2>
+                     <div id="summary" class="grid grid-cols-1 gap-4 text-center mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-blue-800 font-semibold">予想ゴールタイム</p>
+                            <p id="predicted-goal-time" class="text-2xl font-bold text-blue-900">-:--:--</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <p class="text-sm text-green-800 font-semibold">実測合計タイム</p>
+                            <p id="actual-total-time" class="text-2xl font-bold text-green-900">0:00:00</p>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-sm text-yellow-800 font-semibold">予想との差</p>
+                            <p id="time-difference" class="text-2xl font-bold text-yellow-900">0:00:00</p>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">3. 周回数カウンター</h2>
+                    <div id="lap-counter" class="space-y-2">
+                        <!-- 周回数カウンターはJSで生成 -->
+                    </div>
+                    <div id="validation-status" class="mt-4 text-center font-semibold p-3 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- データ定義 ---
+        const runners = [
+            { name: "佐藤社長", time1k: "0:04:50" },
+            { name: "佐藤智常務", time1k: "0:06:00" },
+            { name: "彦野部長", time1k: "0:06:00" },
+            { name: "小林代行", time1k: "0:05:20" },
+            { name: "上田係長", time1k: "0:05:10" },
+            { name: "橋詰リーダー", time1k: "0:05:30" },
+            { name: "竹田さん", time1k: "0:04:50" },
+            { name: "柳田さん", time1k: "0:05:20" },
+            { name: "平森さん", time1k: "0:06:00" },
+            { name: "山家", time1k: "0:04:10" }
+        ];
+
+        // --- DOM要素 ---
+        const orderTableBody = document.getElementById('order-table-body');
+        const predictedGoalTimeEl = document.getElementById('predicted-goal-time');
+        const actualTotalTimeEl = document.getElementById('actual-total-time');
+        const timeDifferenceEl = document.getElementById('time-difference');
+        const lapCounterEl = document.getElementById('lap-counter');
+        const validationStatusEl = document.getElementById('validation-status');
+
+        let predictedTotalSeconds = 0;
+
+        // --- ヘルパー関数 ---
+        function timeToSeconds(timeStr) {
+            if (!timeStr || !timeStr.includes(':')) return 0;
+            const parts = timeStr.split(':').map(Number);
+            return parts.length === 2 ? parts[0] * 60 + parts[1] : (parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : 0);
+        }
+
+        function secondsToTime(totalSeconds) {
+            if (isNaN(totalSeconds)) return "0:00:00";
+            const isNegative = totalSeconds < 0;
+            if (isNegative) totalSeconds = -totalSeconds;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${isNegative ? '-' : ''}${String(hours)}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function secondsToLapTime(totalSeconds) {
+            if (isNaN(totalSeconds)) return "00:00";
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // --- アプリケーションロジック ---
+
+        /**
+         * 初期化処理
+         */
+        function initialize() {
+            createOrderTable();
+            createLapCounter();
+            updateAllCalculations();
+        }
+
+        /**
+         * 走行順テーブルを生成する
+         */
+        function createOrderTable() {
+            orderTableBody.innerHTML = '';
+            for (let i = 1; i <= 21; i++) {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                
+                const runnerOptions = runners.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+
+                row.innerHTML = `
+                    <td class="p-3 font-semibold">${i}</td>
+                    <td class="p-3">
+                        <select class="runner-select w-full p-2 border rounded-md bg-white">
+                            <option value="">未選択</option>
+                            ${runnerOptions}
+                        </select>
+                    </td>
+                    <td class="p-3 font-mono predicted-lap">-:--</td>
+                    <td class="p-3">
+                        <div class="flex space-x-1">
+                           <input type="number" class="actual-lap-min w-14 p-2 border rounded-md text-center" placeholder="MM" min="0">
+                           <span class="flex items-center">:</span>
+                           <input type="number" class="actual-lap-sec w-14 p-2 border rounded-md text-center" placeholder="SS" min="0" max="59">
+                        </div>
+                    </td>
+                    <td class="p-3 font-semibold font-mono cumulative-time">-:--:--</td>
+                `;
+                orderTableBody.appendChild(row);
+            }
+
+            // イベントリスナーを設定
+            document.querySelectorAll('.runner-select').forEach(sel => sel.addEventListener('change', updateAllCalculations));
+            document.querySelectorAll('.actual-lap-min, .actual-lap-sec').forEach(input => input.addEventListener('input', updateResults));
+        }
+        
+        /**
+         * 周回数カウンターを生成する
+         */
+        function createLapCounter() {
+            lapCounterEl.innerHTML = '';
+            runners.forEach(runner => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center text-sm';
+                div.innerHTML = `
+                    <span>${runner.name}</span>
+                    <span id="count-${runner.name.replace(/\s/g, '')}" class="font-bold text-base lap-count-neutral">0 周</span>
+                `;
+                lapCounterEl.appendChild(div);
+            });
+        }
+
+        /**
+         * すべての計算を更新する（担当者変更時に呼び出す）
+         */
+        function updateAllCalculations() {
+            updateLapCounts();
+            updatePredictedTimes();
+            updateResults();
+        }
+
+        /**
+         * 各ランナーの周回数を計算・表示し、割り当てを検証する
+         */
+        function updateLapCounts() {
+            const counts = runners.reduce((acc, r) => ({ ...acc, [r.name]: 0 }), {});
+            document.querySelectorAll('.runner-select').forEach(sel => {
+                if (sel.value) {
+                    counts[sel.value]++;
+                }
+            });
+
+            let threeLapRunners = 0;
+            let twoLapRunners = 0;
+            let otherLapRunners = 0;
+
+            runners.forEach(runner => {
+                const count = counts[runner.name];
+                const countEl = document.getElementById(`count-${runner.name.replace(/\s/g, '')}`);
+                countEl.textContent = `${count} 周`;
+                
+                if (count > 3 || count < 2 && count > 0) {
+                    countEl.className = 'font-bold text-base lap-count-invalid';
+                } else if (count === 2 || count === 3) {
+                    countEl.className = 'font-bold text-base lap-count-valid';
+                } else {
+                    countEl.className = 'font-bold text-base lap-count-neutral';
+                }
+
+                if (count === 3) threeLapRunners++;
+                else if (count === 2) twoLapRunners++;
+                else if (count > 0) otherLapRunners++;
+            });
+
+            // 検証ステータスの更新
+            const totalAssignedLaps = Object.values(counts).reduce((a, b) => a + b, 0);
+            if (totalAssignedLaps === 21 && threeLapRunners === 1 && twoLapRunners === 9 && otherLapRunners === 0) {
+                validationStatusEl.textContent = '周回数の割り当てOKです！';
+                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg bg-green-100 text-green-800';
+            } else {
+                validationStatusEl.textContent = '周回数の割り当てが不正です';
+                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg bg-red-100 text-red-800';
+            }
+        }
+        
+        /**
+         * 予想タイムを更新する
+         */
+        function updatePredictedTimes() {
+            predictedTotalSeconds = 0;
+            const rows = orderTableBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const select = row.querySelector('.runner-select');
+                const predictedLapEl = row.querySelector('.predicted-lap');
+                const runnerName = select.value;
+                
+                if (runnerName) {
+                    const runner = runners.find(r => r.name === runnerName);
+                    const lapSeconds = timeToSeconds(runner.time1k) * 2;
+                    predictedLapEl.textContent = secondsToLapTime(lapSeconds);
+                    predictedTotalSeconds += lapSeconds;
+                } else {
+                    predictedLapEl.textContent = '-:--';
+                }
+            });
+            predictedGoalTimeEl.textContent = secondsToTime(predictedTotalSeconds);
+        }
+
+        /**
+         * 実測タイムと差を更新する
+         */
+        function updateResults() {
+            let actualTotalSeconds = 0;
+            let cumulativeSeconds = 0;
+            const rows = orderTableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const minInput = row.querySelector('.actual-lap-min');
+                const secInput = row.querySelector('.actual-lap-sec');
+                const cumulativeEl = row.querySelector('.cumulative-time');
+
+                const minutes = parseInt(minInput.value, 10) || 0;
+                const seconds = parseInt(secInput.value, 10) || 0;
+                const lapSeconds = minutes * 60 + seconds;
+                
+                if (lapSeconds > 0) {
+                    cumulativeSeconds += lapSeconds;
+                    cumulativeEl.textContent = secondsToTime(cumulativeSeconds);
+                } else {
+                    cumulativeEl.textContent = "-:--:--";
+                }
+                actualTotalSeconds += lapSeconds;
+            });
+            
+            actualTotalTimeEl.textContent = secondsToTime(actualTotalSeconds);
+
+            const differenceSeconds = actualTotalSeconds > 0 ? actualTotalSeconds - predictedTotalSeconds : 0;
+            const differenceTime = secondsToTime(Math.abs(differenceSeconds));
+            
+            if (differenceSeconds > 0) {
+                timeDifferenceEl.className = 'text-2xl font-bold text-red-600';
+                timeDifferenceEl.textContent = `+${differenceTime}`;
+            } else if (differenceSeconds < 0) {
+                 timeDifferenceEl.className = 'text-2xl font-bold text-green-600';
+                 timeDifferenceEl.textContent = `-${differenceTime}`;
+            } else {
+                 timeDifferenceEl.className = 'text-2xl font-bold text-yellow-900';
+                 timeDifferenceEl.textContent = '0:00:00';
+            }
+        }
+
+        // --- アプリケーション起動 ---
+        initialize();
+    </script>
+
+</body>
+</html>
