@@ -225,7 +225,7 @@
         // --- アプリケーションロジック ---
         async function initialize() {
             // ▼▼▼ この部分を、Firebaseコンソールからコピーしたあなた専用の情報に書き換えてください ▼▼▼
-           const firebaseConfig = {
+            const firebaseConfig = {
   apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
   authDomain: "relay-marathon-app.firebaseapp.com",
   projectId: "relay-marathon-app",
@@ -234,13 +234,8 @@
   appId: "1:652986181710:web:4d010779344abc41f73b1f"
 };
 
-
-
             // ▲▲▲ ここまで ▲▲▲
 
-            // ---【重要】ここから下は編集しないでください ---
-            
-            // 設定が書き換えられたかチェック
             if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
                  orderTableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-semibold">エラー：Firebaseの接続情報が設定されていません。<br>index.htmlファイルを編集し、あなた専用の情報に書き換えてください。</td></tr>`;
                  return;
@@ -300,16 +295,18 @@
                 const minInput = row.querySelector('.actual-lap-min');
                 const secInput = row.querySelector('.actual-lap-sec');
 
-                if (selectEl.value !== (lap.runnerName || "")) {
+                // ===== ここから修正 =====
+                // アクティブな要素でない場合のみ値を更新
+                if (document.activeElement !== selectEl) {
                     selectEl.value = lap.runnerName || "";
                 }
-                
                 if (document.activeElement !== minInput) {
                     minInput.value = lap.actualMin || '';
                 }
                 if (document.activeElement !== secInput) {
                     secInput.value = lap.actualSec || '';
                 }
+                // ===== ここまで修正 =====
             });
 
             updateAllCalculations(lapsData);
