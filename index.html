@@ -63,6 +63,10 @@
         tbody tr:hover {
             background-color: #f0f9ff; /* sky-50 */
         }
+        .runner-select {
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -222,16 +226,20 @@
         async function initialize() {
             // ▼▼▼ この部分を、Firebaseコンソールからコピーしたあなた専用の情報に書き換えてください ▼▼▼
             const firebaseConfig = {
-              apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
-              authDomain: "relay-marathon-app.firebaseapp.com",
-              projectId: "relay-marathon-app",
-              storageBucket: "relay-marathon-app.appspot.com",
-              messagingSenderId: "652986181710",
-              appId: "1:652986181710:web:4d010779344abc41f73b1f"
-            };
+  apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
+  authDomain: "relay-marathon-app.firebaseapp.com",
+  projectId: "relay-marathon-app",
+  storageBucket: "relay-marathon-app.firebasestorage.app",
+  messagingSenderId: "652986181710",
+  appId: "1:652986181710:web:4d010779344abc41f73b1f"
+};
+
             // ▲▲▲ ここまで ▲▲▲
 
-            if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
+            // ---【重要】ここから下は編集しないでください ---
+            
+            // 設定が書き換えられたかチェック
+            if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
                  orderTableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-semibold">エラー：Firebaseの接続情報が設定されていません。<br>index.htmlファイルを編集し、あなた専用の情報に書き換えてください。</td></tr>`;
                  return;
             }
@@ -293,6 +301,7 @@
                 if (selectEl.value !== (lap.runnerName || "")) {
                     selectEl.value = lap.runnerName || "";
                 }
+                
                 if (document.activeElement !== minInput) {
                     minInput.value = lap.actualMin || '';
                 }
