@@ -225,13 +225,13 @@
         // --- アプリケーションロジック ---
         async function initialize() {
             // ▼▼▼ この部分を、Firebaseコンソールからコピーしたあなた専用の情報に書き換えてください ▼▼▼
-const firebaseConfig = {
+            const firebaseConfig = {
   apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
   authDomain: "relay-marathon-app.firebaseapp.com",
   projectId: "relay-marathon-app",
   storageBucket: "relay-marathon-app.firebasestorage.app",
   messagingSenderId: "652986181710",
-  appId: "1:652986181710:web:6fc465b5b555cb4cf73b1f"
+  appId: "1:652986181710:web:4d010779344abc41f73b1f"
 };
 
             // ▲▲▲ ここまで ▲▲▲
@@ -295,8 +295,6 @@ const firebaseConfig = {
                 const minInput = row.querySelector('.actual-lap-min');
                 const secInput = row.querySelector('.actual-lap-sec');
 
-                // ===== ここから修正 =====
-                // アクティブな要素でない場合のみ値を更新
                 if (document.activeElement !== selectEl) {
                     selectEl.value = lap.runnerName || "";
                 }
@@ -306,7 +304,6 @@ const firebaseConfig = {
                 if (document.activeElement !== secInput) {
                     secInput.value = lap.actualSec || '';
                 }
-                // ===== ここまで修正 =====
             });
 
             updateAllCalculations(lapsData);
@@ -537,32 +534,36 @@ const firebaseConfig = {
         }
 
         async function handleRunnerChange(event) {
+            if (currentLapsData.length === 0) return;
             const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
             const newRunnerName = event.target.value;
             
-            const updatedLaps = [...currentLapsData];
-            updatedLaps[lapIndex] = { ...updatedLaps[lapIndex], runnerName: newRunnerName };
+            if (!currentLapsData[lapIndex]) return;
+
+            currentLapsData[lapIndex].runnerName = newRunnerName;
             
-            await setDoc(marathonDocRef, { laps: updatedLaps });
+            await setDoc(marathonDocRef, { laps: currentLapsData });
         }
 
         async function handleTimeChange(event) {
+            if (currentLapsData.length === 0) return;
             const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
             const isMin = event.target.classList.contains('actual-lap-min');
             const newValue = event.target.value;
 
-            const updatedLaps = [...currentLapsData];
-            const updatedLap = { ...updatedLaps[lapIndex] };
+            if (!currentLapsData[lapIndex]) return;
 
             if (isMin) {
-                updatedLap.actualMin = newValue;
+                currentLapsData[lapIndex].actualMin = newValue;
             } else {
-                updatedLap.actualSec = newValue;
+                currentLapsData[lapIndex].actualSec = newValue;
             }
-            updatedLaps[lapIndex] = updatedLap;
-
-            await setDoc(marathonDocRef, { laps: updatedLaps });
+            
+            await setDoc(marathonDocRef, { laps: currentLapsData });
         }
 
         initialize();
     </script>
+
+</body>
+</html>
