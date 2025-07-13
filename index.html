@@ -538,11 +538,12 @@
             const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
             const newRunnerName = event.target.value;
             
-            if (!currentLapsData[lapIndex]) return;
+            const updatedLaps = [...currentLapsData];
+            if (!updatedLaps[lapIndex]) return;
 
-            currentLapsData[lapIndex].runnerName = newRunnerName;
+            updatedLaps[lapIndex].runnerName = newRunnerName;
             
-            await setDoc(marathonDocRef, { laps: currentLapsData });
+            await setDoc(marathonDocRef, { laps: updatedLaps });
         }
 
         async function handleTimeChange(event) {
@@ -551,15 +552,16 @@
             const isMin = event.target.classList.contains('actual-lap-min');
             const newValue = event.target.value;
 
-            if (!currentLapsData[lapIndex]) return;
+            const updatedLaps = [...currentLapsData];
+            if (!updatedLaps[lapIndex]) return;
 
             if (isMin) {
-                currentLapsData[lapIndex].actualMin = newValue;
+                updatedLaps[lapIndex].actualMin = newValue;
             } else {
-                currentLapsData[lapIndex].actualSec = newValue;
+                updatedLaps[lapIndex].actualSec = newValue;
             }
             
-            await setDoc(marathonDocRef, { laps: currentLapsData });
+            await setDoc(marathonDocRef, { laps: updatedLaps });
         }
 
         initialize();
