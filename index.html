@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リレーマラソン管理アプリ（共同編集対応）</title>
+    <title>オーエスマシナリー㈱ 北ガスリレーマラソン</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            font-family: 'Lexend', 'Noto Sans JP', sans-serif;
+            background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%);
+            scroll-behavior: smooth;
         }
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
@@ -21,92 +25,145 @@
         .lap-count-valid { color: #16a34a; } /* green-600 */
         .lap-count-invalid { color: #dc2626; } /* red-600 */
         .lap-count-neutral { color: #6b7280; } /* gray-500 */
-        #app-id-container {
-            cursor: pointer;
+        .lap-diff-plus { color: #ef4444; } /* red-500 */
+        .lap-diff-minus { color: #22c55e; } /* green-500 */
+        
+        .card {
+            background-color: white;
+            border-radius: 1.25rem; /* 20px */
+            padding: 1.5rem; /* 24px */
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
         }
-        #copy-feedback {
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.5s linear;
+        .card:hover {
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transform: translateY(-2px);
         }
-        #copy-feedback.show {
-            visibility: visible;
-            opacity: 1;
+        .section-title {
+            font-size: 1.25rem; /* 20px */
+            font-weight: 600;
+            padding-bottom: 0.75rem; /* 12px */
+            border-bottom: 2px solid #e2e8f0; /* slate-200 */
+            margin-bottom: 1.5rem; /* 24px */
+            color: #1e293b; /* slate-800 */
+        }
+        .table-header th {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569; /* slate-600 */
+            font-size: 0.75rem; /* 12px */
+        }
+        tbody tr {
+            border-bottom: 1px solid #f1f5f9; /* slate-100 */
+        }
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+        tbody tr:hover {
+            background-color: #f0f9ff; /* sky-50 */
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-slate-50 text-slate-800">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">リレーマラソン管理アプリ</h1>
-            <p class="text-gray-600 mt-2">各周回の担当者を手動で割り当て、タイムを管理します。（共同編集対応）</p>
-            <div id="app-id-container" class="mt-4 max-w-md mx-auto bg-gray-200 p-2 rounded-lg flex items-center justify-center gap-2" title="クリックしてアプリIDをコピー">
-                <span class="text-sm font-semibold">アプリID:</span>
-                <span id="app-id" class="font-mono text-sm">...loading</span>
-                <span id="copy-feedback" class="text-sm font-bold text-green-600">コピーしました！</span>
-            </div>
-             <div class="text-center mt-2">
-                <p class="text-xs text-gray-500">あなたのユーザーID: <span id="user-id">...</span></p>
-            </div>
-        </header>
+    <header class="bg-white py-4 shadow-sm border-b border-slate-200/80">
+        <div class="container mx-auto flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-2 px-4">
+            <h1 class="text-2xl font-bold text-red-600 tracking-wider">オーエスマシナリー㈱</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <div class="text-center mb-10">
+            <h2 class="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">北ガスリレーマラソン</h2>
+            <p class="text-slate-500 mt-3 max-w-2xl mx-auto">各周回の担当者を手動で割り当て、タイムを管理します。（共同編集対応）</p>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- 左側：走行順と結果入力 -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. 走行順と結果</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-max text-left">
-                        <thead class="border-b-2 border-gray-200">
-                            <tr>
-                                <th class="p-3 text-sm font-semibold text-gray-600">周回</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600">担当者</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600">予想ラップ</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600">実測ラップ (分:秒)</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600">累計タイム</th>
-                            </tr>
-                        </thead>
-                        <tbody id="order-table-body">
-                           <tr><td colspan="5" class="p-8 text-center text-gray-500">データベースに接続中...</td></tr>
-                        </tbody>
-                    </table>
+            <div class="lg:col-span-2 space-y-8">
+                <div class="card">
+                    <h3 class="section-title">1. 走行順と結果</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-max text-left">
+                            <thead class="table-header">
+                                <tr>
+                                    <th class="p-3">周回</th>
+                                    <th class="p-3">担当者</th>
+                                    <th class="p-3">予想ラップ</th>
+                                    <th class="p-3">実測ラップ (分:秒)</th>
+                                    <th class="p-3">累計タイム</th>
+                                    <th class="p-3">予想差</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-table-body">
+                               <tr><td colspan="6" class="p-8 text-center text-slate-500">データベースに接続中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="section-title">4. 個人別サマリー</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-max text-left">
+                            <thead class="table-header">
+                                <tr>
+                                    <th class="p-3">ランナー</th>
+                                    <th class="p-3 text-center">担当周回数</th>
+                                    <th class="p-3">合計予想タイム</th>
+                                    <th class="p-3">合計実績タイム</th>
+                                    <th class="p-3">差</th>
+                                </tr>
+                            </thead>
+                            <tbody id="individual-summary-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- 右側：サマリーとカウンター -->
             <div class="lg:col-span-1">
-                <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
-                    <h2 class="text-xl font-bold mb-4 border-b pb-2">2. サマリー</h2>
-                     <div id="summary" class="grid grid-cols-1 gap-4 text-center mb-6">
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <p class="text-sm text-blue-800 font-semibold">予想ゴールタイム</p>
-                            <p id="predicted-goal-time" class="text-2xl font-bold text-blue-900">-:--:--</p>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <p class="text-sm text-green-800 font-semibold">実測合計タイム</p>
-                            <p id="actual-total-time" class="text-2xl font-bold text-green-900">0:00:00</p>
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg">
-                            <p class="text-sm text-yellow-800 font-semibold">予想との差</p>
-                            <p id="time-difference" class="text-2xl font-bold text-yellow-900">0:00:00</p>
+                <div class="sticky top-8 space-y-8">
+                    <div class="card">
+                        <h3 class="section-title">2. 全体サマリー</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between bg-blue-50 p-4 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-blue-100 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                                    <p class="font-medium text-blue-900">予想ゴールタイム</p>
+                                </div>
+                                <p id="predicted-goal-time" class="text-2xl font-bold text-blue-900">-:--:--</p>
+                            </div>
+                            <div class="flex items-center justify-between bg-green-50 p-4 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-green-100 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                                    <p class="font-medium text-green-900">実測合計タイム</p>
+                                </div>
+                                <p id="actual-total-time" class="text-2xl font-bold text-green-900">0:00:00</p>
+                            </div>
+                            <div class="flex items-center justify-between bg-orange-50 p-4 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-orange-100 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                                    <p class="font-medium text-orange-900">予想との差</p>
+                                </div>
+                                <p id="time-difference" class="text-2xl font-bold text-orange-900">0:00:00</p>
+                            </div>
                         </div>
                     </div>
 
-                    <h2 class="text-xl font-bold mb-4 border-b pb-2">3. 周回数カウンター</h2>
-                    <div id="lap-counter" class="space-y-2">
-                        <!-- 周回数カウンターはJSで生成 -->
+                    <div class="card">
+                        <h3 class="section-title">3. 周回数カウンター</h3>
+                        <div id="lap-counter" class="space-y-3"></div>
+                        <div id="validation-status" class="mt-4 text-center font-semibold p-3 rounded-lg text-sm"></div>
                     </div>
-                    <div id="validation-status" class="mt-4 text-center font-semibold p-3 rounded-lg"></div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script type="module">
         // --- Firebase SDKのインポート ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- データ定義 ---
         const runners = [
@@ -129,16 +186,14 @@
         const timeDifferenceEl = document.getElementById('time-difference');
         const lapCounterEl = document.getElementById('lap-counter');
         const validationStatusEl = document.getElementById('validation-status');
-        const appIdEl = document.getElementById('app-id');
-        const userIdEl = document.getElementById('user-id');
-        const appIdContainer = document.getElementById('app-id-container');
+        const individualSummaryBody = document.getElementById('individual-summary-body');
 
         // --- Firebase関連の変数 ---
         let db, auth;
         let marathonDocRef;
-        let currentLapsData = []; // 現在のラップデータを保持するローカルキャッシュ
+        let currentLapsData = [];
 
-        // --- ヘルパー関数 (変更なし) ---
+        // --- ヘルパー関数 ---
         function timeToSeconds(timeStr) {
             if (!timeStr || !timeStr.includes(':')) return 0;
             const parts = timeStr.split(':').map(Number);
@@ -157,164 +212,152 @@
 
         function secondsToLapTime(totalSeconds) {
             if (isNaN(totalSeconds)) return "00:00";
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = Math.floor(totalSeconds % 60);
-            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const sign = totalSeconds < 0 ? '-' : '+';
+            const minutes = Math.floor(Math.abs(totalSeconds) / 60);
+            const seconds = Math.floor(Math.abs(totalSeconds) % 60);
+            return `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
         
         // --- アプリケーションロジック ---
-
-        /**
-         * 初期化処理
-         */
         async function initialize() {
-            // Firebase設定の取得と初期化
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            appIdEl.textContent = appId;
-            
+            // ▼▼▼ この部分を、Firebaseコンソールからコピーしたあなた専用の情報に書き換えてください ▼▼▼
             const firebaseConfig = {
-  apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
-  authDomain: "relay-marathon-app.firebaseapp.com",
-  projectId: "relay-marathon-app",
-  storageBucket: "relay-marathon-app.firebasestorage.app",
-  messagingSenderId: "652986181710",
-  appId: "1:652986181710:web:4d010779344abc41f73b1f"
-};
+              apiKey: "AIzaSyBKwJxu2VokDz7rMIoWZlnjwdcv3fBJico",
+              authDomain: "relay-marathon-app.firebaseapp.com",
+              projectId: "relay-marathon-app",
+              storageBucket: "relay-marathon-app.appspot.com",
+              messagingSenderId: "652986181710",
+              appId: "1:652986181710:web:4d010779344abc41f73b1f"
+            };
+            // ▲▲▲ ここまで ▲▲▲
 
-           
-            
+            if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
+                 orderTableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-semibold">エラー：Firebaseの接続情報が設定されていません。<br>index.htmlファイルを編集し、あなた専用の情報に書き換えてください。</td></tr>`;
+                 return;
+            }
+
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
-            // ドキュメント参照を設定
-            marathonDocRef = doc(db, `artifacts/${appId}/public/data/marathon/state`);
+            const appId = firebaseConfig.projectId || 'default-app-id';
+            
+            marathonDocRef = doc(db, `marathon-apps/${appId}/state/data`);
 
-            // 認証状態の監視
-            onAuthStateChanged(auth, async (user) => {
+            renderInitialTableStructure();
+
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    userIdEl.textContent = user.uid;
-                    // データベースのリアルタイム監視を開始
                     setupOnSnapshotListener();
                 }
             });
 
-            // 認証処理
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (error) {
                 console.error("Authentication failed:", error);
-                orderTableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">認証に失敗しました。</td></tr>`;
+                orderTableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">認証に失敗しました。FirebaseのAPIキーが正しいか、再度確認してください。</td></tr>`;
             }
 
-            createLapCounter(); // カウンターの枠だけ先に作成
-            appIdContainer.addEventListener('click', copyAppId);
+            createLapCounter();
         }
 
-        /**
-         * Firestoreのリアルタイムリスナーを設定
-         */
         function setupOnSnapshotListener() {
             onSnapshot(marathonDocRef, (docSnap) => {
                 let docData;
                 if (docSnap.exists()) {
                     docData = docSnap.data();
                 } else {
-                    // ドキュメントが存在しない場合、初期データを作成
-                    console.log("No such document! Creating initial data.");
                     const initialLaps = Array(21).fill({ runnerName: "", actualMin: "", actualSec: "" });
                     docData = { laps: initialLaps };
-                    // setDocは非同期だが、次のonSnapshotで反映されるので待たない
                     setDoc(marathonDocRef, docData); 
                 }
-                currentLapsData = docData.laps; // ローカルキャッシュを更新
-                render(currentLapsData); // データをもとに画面を再描画
+                currentLapsData = docData.laps;
+                updateUI(currentLapsData);
             }, (error) => {
                 console.error("Error listening to document:", error);
-                orderTableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">データの同期に失敗しました。</td></tr>`;
+                orderTableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">データの同期に失敗しました。</td></tr>`;
             });
         }
+        
+        function updateUI(lapsData) {
+            const rows = orderTableBody.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                const lap = lapsData[index];
+                if (!lap) return;
 
-        /**
-         * データをもとに画面全体を再描画する
-         * @param {Array} lapsData - 21周分のラップデータ
-         */
-        function render(lapsData) {
-            renderOrderTable(lapsData);
+                const selectEl = row.querySelector('.runner-select');
+                const minInput = row.querySelector('.actual-lap-min');
+                const secInput = row.querySelector('.actual-lap-sec');
+
+                if (selectEl.value !== (lap.runnerName || "")) {
+                    selectEl.value = lap.runnerName || "";
+                }
+                if (document.activeElement !== minInput) {
+                    minInput.value = lap.actualMin || '';
+                }
+                if (document.activeElement !== secInput) {
+                    secInput.value = lap.actualSec || '';
+                }
+            });
+
             updateAllCalculations(lapsData);
         }
         
-        /**
-         * 走行順テーブルをデータをもとに描画する
-         */
-        function renderOrderTable(lapsData) {
+        function renderInitialTableStructure() {
             orderTableBody.innerHTML = '';
             const runnerOptions = runners.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
 
-            lapsData.forEach((lap, index) => {
+            for (let index = 0; index < 21; index++) {
                 const row = document.createElement('tr');
-                row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                row.className = 'hover:bg-sky-50/50';
                 
                 row.innerHTML = `
-                    <td class="p-3 font-semibold">${index + 1}</td>
+                    <td class="p-3 font-semibold text-center text-slate-500">${index + 1}</td>
                     <td class="p-3">
-                        <select class="runner-select w-full p-2 border rounded-md bg-white" data-lap-index="${index}">
+                        <select class="runner-select w-full p-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">未選択</option>
                             ${runnerOptions}
                         </select>
                     </td>
-                    <td class="p-3 font-mono predicted-lap">-:--</td>
+                    <td class="p-3 font-mono text-slate-600 predicted-lap">-:--</td>
                     <td class="p-3">
                         <div class="flex space-x-1">
-                           <input type="number" class="actual-lap-min w-14 p-2 border rounded-md text-center" placeholder="MM" min="0" data-lap-index="${index}" value="${lap.actualMin || ''}">
-                           <span class="flex items-center">:</span>
-                           <input type="number" class="actual-lap-sec w-14 p-2 border rounded-md text-center" placeholder="SS" min="0" max="59" data-lap-index="${index}" value="${lap.actualSec || ''}">
+                           <input type="number" class="actual-lap-min w-16 p-2 border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="MM" min="0" data-lap-index="${index}">
+                           <span class="flex items-center text-slate-400">:</span>
+                           <input type="number" class="actual-lap-sec w-16 p-2 border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="SS" min="0" max="59" data-lap-index="${index}">
                         </div>
                     </td>
-                    <td class="p-3 font-semibold font-mono cumulative-time">-:--:--</td>
+                    <td class="p-3 font-semibold font-mono text-slate-700 cumulative-time">-:--:--</td>
+                    <td class="p-3 font-semibold font-mono lap-difference">-:--</td>
                 `;
-                // 担当者を選択状態にする
-                row.querySelector('.runner-select').value = lap.runnerName || "";
                 orderTableBody.appendChild(row);
-            });
+            }
 
-            // イベントリスナーを再設定
             document.querySelectorAll('.runner-select').forEach(sel => sel.addEventListener('change', handleRunnerChange));
             document.querySelectorAll('.actual-lap-min, .actual-lap-sec').forEach(input => input.addEventListener('input', handleTimeChange));
         }
         
-        /**
-         * 周回数カウンターの枠を生成する
-         */
         function createLapCounter() {
             lapCounterEl.innerHTML = '';
             runners.forEach(runner => {
                 const div = document.createElement('div');
-                div.className = 'flex justify-between items-center text-sm';
+                div.className = 'flex justify-between items-center text-sm p-2 rounded-lg';
                 div.innerHTML = `
-                    <span>${runner.name}</span>
+                    <span class="text-slate-600">${runner.name}</span>
                     <span id="count-${runner.name.replace(/\s/g, '')}" class="font-bold text-base lap-count-neutral">0 周</span>
                 `;
                 lapCounterEl.appendChild(div);
             });
         }
 
-        /**
-         * すべての計算を更新する
-         */
         function updateAllCalculations(lapsData) {
             updateLapCounts(lapsData);
             const predictedSeconds = updatePredictedTimes(lapsData);
             updateResults(lapsData, predictedSeconds);
+            updateIndividualSummaries(lapsData);
         }
 
-        /**
-         * 各ランナーの周回数を計算・表示し、割り当てを検証する
-         */
         function updateLapCounts(lapsData) {
             const counts = runners.reduce((acc, r) => ({ ...acc, [r.name]: 0 }), {});
             lapsData.forEach(lap => {
@@ -330,9 +373,9 @@
                 if (!countEl) return;
                 countEl.textContent = `${count} 周`;
                 
-                if (count > 3 || (count < 2 && count > 0)) countEl.className = 'font-bold text-base lap-count-invalid';
-                else if (count === 2 || count === 3) countEl.className = 'font-bold text-base lap-count-valid';
-                else countEl.className = 'font-bold text-base lap-count-neutral';
+                if (count > 3 || (count < 2 && count > 0)) countEl.parentElement.className = 'flex justify-between items-center text-sm p-2 rounded-lg bg-red-50';
+                else if (count === 2 || count === 3) countEl.parentElement.className = 'flex justify-between items-center text-sm p-2 rounded-lg bg-green-50';
+                else countEl.parentElement.className = 'flex justify-between items-center text-sm p-2 rounded-lg';
 
                 if (count === 3) threeLapRunners++;
                 else if (count === 2) twoLapRunners++;
@@ -342,28 +385,30 @@
             const totalAssignedLaps = lapsData.filter(l => l.runnerName).length;
             if (totalAssignedLaps === 21 && threeLapRunners === 1 && twoLapRunners === 9 && otherLapRunners === 0) {
                 validationStatusEl.textContent = '周回数の割り当てOKです！';
-                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg bg-green-100 text-green-800';
+                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg text-sm bg-green-100 text-green-800';
             } else {
                 validationStatusEl.textContent = '周回数の割り当てが不正です';
-                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg bg-red-100 text-red-800';
+                validationStatusEl.className = 'mt-4 text-center font-semibold p-3 rounded-lg text-sm bg-red-100 text-red-800';
             }
         }
         
-        /**
-         * 予想タイムを更新する
-         */
         function updatePredictedTimes(lapsData) {
             let totalSeconds = 0;
             const rows = orderTableBody.querySelectorAll('tr');
             rows.forEach((row, index) => {
                 const predictedLapEl = row.querySelector('.predicted-lap');
+                if (!predictedLapEl) return;
                 const runnerName = lapsData[index]?.runnerName;
                 
                 if (runnerName) {
                     const runner = runners.find(r => r.name === runnerName);
-                    const lapSeconds = timeToSeconds(runner.time1k) * 2;
-                    predictedLapEl.textContent = secondsToLapTime(lapSeconds);
-                    totalSeconds += lapSeconds;
+                    if (runner) {
+                        const lapSeconds = timeToSeconds(runner.time1k) * 2;
+                        predictedLapEl.textContent = secondsToTime(lapSeconds).substring(2);
+                        totalSeconds += lapSeconds;
+                    } else {
+                        predictedLapEl.textContent = '-:--';
+                    }
                 } else {
                     predictedLapEl.textContent = '-:--';
                 }
@@ -372,9 +417,6 @@
             return totalSeconds;
         }
 
-        /**
-         * 実測タイムと差を更新する
-         */
         function updateResults(lapsData, predictedTotalSeconds) {
             let actualTotalSeconds = 0;
             let cumulativeSeconds = 0;
@@ -382,18 +424,44 @@
 
             rows.forEach((row, index) => {
                 const cumulativeEl = row.querySelector('.cumulative-time');
+                const lapDifferenceEl = row.querySelector('.lap-difference');
+                if (!cumulativeEl || !lapDifferenceEl) return;
+
                 const lap = lapsData[index];
+                
                 const minutes = parseInt(lap.actualMin, 10) || 0;
                 const seconds = parseInt(lap.actualSec, 10) || 0;
-                const lapSeconds = minutes * 60 + seconds;
+                const actualLapSeconds = minutes * 60 + seconds;
                 
-                if (lapSeconds > 0) {
-                    cumulativeSeconds += lapSeconds;
+                const runnerName = lap.runnerName;
+                let predictedLapSeconds = 0;
+                if(runnerName){
+                    const runner = runners.find(r => r.name === runnerName);
+                    if(runner) predictedLapSeconds = timeToSeconds(runner.time1k) * 2;
+                }
+                
+                if (actualLapSeconds > 0 && predictedLapSeconds > 0) {
+                    const diffSeconds = actualLapSeconds - predictedLapSeconds;
+                    const diffTimeStr = secondsToLapTime(diffSeconds);
+                    if (diffSeconds >= 0) {
+                        lapDifferenceEl.textContent = `+${diffTimeStr.substring(1)}`;
+                        lapDifferenceEl.className = 'p-3 font-semibold font-mono lap-difference lap-diff-plus';
+                    } else {
+                        lapDifferenceEl.textContent = `-${diffTimeStr.substring(1)}`;
+                        lapDifferenceEl.className = 'p-3 font-semibold font-mono lap-difference lap-diff-minus';
+                    }
+                } else {
+                    lapDifferenceEl.textContent = "-:--";
+                    lapDifferenceEl.className = 'p-3 font-semibold font-mono lap-difference';
+                }
+
+                if (actualLapSeconds > 0) {
+                    cumulativeSeconds += actualLapSeconds;
                     cumulativeEl.textContent = secondsToTime(cumulativeSeconds);
                 } else {
                     cumulativeEl.textContent = "-:--:--";
                 }
-                actualTotalSeconds += lapSeconds;
+                actualTotalSeconds += actualLapSeconds;
             });
             
             actualTotalTimeEl.textContent = secondsToTime(actualTotalSeconds);
@@ -402,28 +470,71 @@
             const differenceTime = secondsToTime(Math.abs(differenceSeconds));
             
             if (differenceSeconds > 0) {
-                timeDifferenceEl.className = 'text-2xl font-bold text-red-600';
+                timeDifferenceEl.className = 'text-2xl font-bold text-red-500';
                 timeDifferenceEl.textContent = `+${differenceTime}`;
             } else if (differenceSeconds < 0) {
-                 timeDifferenceEl.className = 'text-2xl font-bold text-green-600';
+                 timeDifferenceEl.className = 'text-2xl font-bold text-green-500';
                  timeDifferenceEl.textContent = `-${differenceTime}`;
             } else {
-                 timeDifferenceEl.className = 'text-2xl font-bold text-yellow-900';
+                 timeDifferenceEl.className = 'text-2xl font-bold text-slate-800';
                  timeDifferenceEl.textContent = '0:00:00';
             }
         }
 
-        // --- Firestoreへの書き込み処理 ---
+        function updateIndividualSummaries(lapsData) {
+            const summaries = runners.reduce((acc, runner) => {
+                acc[runner.name] = { lapCount: 0, totalPredictedSeconds: 0, totalActualSeconds: 0, runnerInfo: runner };
+                return acc;
+            }, {});
+
+            lapsData.forEach(lap => {
+                if (lap.runnerName) {
+                    const summary = summaries[lap.runnerName];
+                    summary.lapCount++;
+                    summary.totalPredictedSeconds += timeToSeconds(summary.runnerInfo.time1k) * 2;
+                    summary.totalActualSeconds += (parseInt(lap.actualMin, 10) || 0) * 60 + (parseInt(lap.actualSec, 10) || 0);
+                }
+            });
+
+            individualSummaryBody.innerHTML = '';
+
+            Object.values(summaries).sort((a,b) => runners.findIndex(r => r.name === a.runnerInfo.name) - runners.findIndex(r => r.name === b.runnerInfo.name))
+            .forEach(summary => {
+                if (summary.lapCount > 0) {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-sky-50/50';
+
+                    const differenceSeconds = summary.totalActualSeconds > 0 ? summary.totalActualSeconds - summary.totalPredictedSeconds : 0;
+                    
+                    let diffHtml = `<span class="text-slate-500">-:--:--</span>`;
+                    if (summary.totalActualSeconds > 0) {
+                        const diffTimeStr = secondsToTime(differenceSeconds);
+                         if (differenceSeconds >= 0) {
+                            diffHtml = `<span class="lap-diff-plus font-semibold">+${diffTimeStr}</span>`;
+                        } else {
+                            diffHtml = `<span class="lap-diff-minus font-semibold">${diffTimeStr}</span>`;
+                        }
+                    }
+
+                    row.innerHTML = `
+                        <td class="p-3 font-medium text-slate-700">${summary.runnerInfo.name}</td>
+                        <td class="p-3 text-center text-slate-600">${summary.lapCount}</td>
+                        <td class="p-3 font-mono text-slate-600">${secondsToTime(summary.totalPredictedSeconds)}</td>
+                        <td class="p-3 font-mono text-slate-600">${summary.totalActualSeconds > 0 ? secondsToTime(summary.totalActualSeconds) : '-:--:--'}</td>
+                        <td class="p-3 font-mono">${diffHtml}</td>
+                    `;
+                    individualSummaryBody.appendChild(row);
+                }
+            });
+        }
 
         async function handleRunnerChange(event) {
             const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
             const newRunnerName = event.target.value;
             
-            // ローカルキャッシュのコピーを更新
             const updatedLaps = [...currentLapsData];
             updatedLaps[lapIndex] = { ...updatedLaps[lapIndex], runnerName: newRunnerName };
             
-            // Firestoreに書き込み
             await setDoc(marathonDocRef, { laps: updatedLaps });
         }
 
@@ -445,28 +556,6 @@
             await setDoc(marathonDocRef, { laps: updatedLaps });
         }
 
-        // --- UIヘルパー ---
-        function copyAppId() {
-            const appId = appIdEl.textContent;
-            // execCommandは非推奨だが、iframe内の制約でnavigator.clipboardが使えない場合がある
-            const textArea = document.createElement("textarea");
-            textArea.value = appId;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                const feedbackEl = document.getElementById('copy-feedback');
-                feedbackEl.classList.add('show');
-                setTimeout(() => {
-                    feedbackEl.classList.remove('show');
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
-        // --- アプリケーション起動 ---
         initialize();
     </script>
 
