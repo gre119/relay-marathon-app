@@ -82,6 +82,22 @@
             <h2 class="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">北ガスリレーマラソン</h2>
             <p class="text-slate-500 mt-3 max-w-2xl mx-auto">各周回の担当者を手動で割り当て、タイムを管理します。（共同編集対応）</p>
         </div>
+        
+        <!-- ===== 動画セクション ===== -->
+        <div class="mb-10 card">
+             <h3 class="section-title">チーム紹介ビデオ</h3>
+            <div class="aspect-video w-full rounded-xl overflow-hidden shadow-lg">
+                <iframe 
+                    class="w-full h-full"
+                    src="https://www.youtube.com/embed/o7__Fzg40Mk" 
+                    title="YouTube video player" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+        <!-- ===== ここまで ===== -->
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-8">
@@ -533,33 +549,36 @@
             });
         }
 
-        // ===== ここから修正 =====
-        function buildLapsFromUI() {
-            const laps = [];
-            const rows = orderTableBody.querySelectorAll('tr');
-            rows.forEach(row => {
-                const selectEl = row.querySelector('.runner-select');
-                const minInput = row.querySelector('.actual-lap-min');
-                const secInput = row.querySelector('.actual-lap-sec');
-                laps.push({
-                    runnerName: selectEl.value,
-                    actualMin: minInput.value,
-                    actualSec: secInput.value
-                });
-            });
-            return laps;
-        }
-
         async function handleRunnerChange(event) {
-            const updatedLaps = buildLapsFromUI();
+            if (currentLapsData.length === 0) return;
+            const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
+            const newRunnerName = event.target.value;
+            
+            const updatedLaps = [...currentLapsData];
+            if (!updatedLaps[lapIndex]) return;
+
+            updatedLaps[lapIndex].runnerName = newRunnerName;
+            
             await setDoc(marathonDocRef, { laps: updatedLaps });
         }
 
         async function handleTimeChange(event) {
-            const updatedLaps = buildLapsFromUI();
+            if (currentLapsData.length === 0) return;
+            const lapIndex = parseInt(event.target.dataset.lapIndex, 10);
+            const isMin = event.target.classList.contains('actual-lap-min');
+            const newValue = event.target.value;
+
+            const updatedLaps = [...currentLapsData];
+            if (!updatedLaps[lapIndex]) return;
+
+            if (isMin) {
+                updatedLaps[lapIndex].actualMin = newValue;
+            } else {
+                updatedLaps[lapIndex].actualSec = newValue;
+            }
+            
             await setDoc(marathonDocRef, { laps: updatedLaps });
         }
-        // ===== ここまで修正 =====
 
         initialize();
     </script>
