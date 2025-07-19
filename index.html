@@ -89,20 +89,6 @@
             <p class="text-slate-500 mt-3 max-w-2xl mx-auto">各周回の担当者を手動で割り当て、タイムを管理します。（共同編集対応）</p>
         </div>
 
-        <div class="mb-12 card">
-             <h3 class="section-title">チーム紹介ビデオ</h3>
-            <div class="aspect-video w-full rounded-xl overflow-hidden shadow-lg border border-slate-200/50">
-                <iframe 
-                    class="w-full h-full"
-                    src="https://www.youtube.com/embed/o7__Fzg40Mk" 
-                    title="YouTube video player" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
-        </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-8">
                 <div class="card">
@@ -136,6 +122,7 @@
                                     <th class="p-3">合計予想タイム</th>
                                     <th class="p-3">合計実績タイム</th>
                                     <th class="p-3">差</th>
+                                    <th class="p-3">1km平均</th>
                                 </tr>
                             </thead>
                             <tbody id="individual-summary-body"></tbody>
@@ -240,6 +227,13 @@
             const minutes = Math.floor(Math.abs(totalSeconds) / 60);
             const seconds = Math.floor(Math.abs(totalSeconds) % 60);
             return `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function secondsToPace(totalSeconds) {
+            if (isNaN(totalSeconds) || !isFinite(totalSeconds) || totalSeconds <= 0) return "-:--";
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
         
         // --- アプリケーションロジック ---
@@ -534,12 +528,16 @@
                         }
                     }
 
+                    const totalDistance = summary.lapCount * 1.319;
+                    const avgPaceSeconds = summary.totalActualSeconds > 0 ? summary.totalActualSeconds / totalDistance : 0;
+
                     row.innerHTML = `
                         <td class="p-3 font-medium text-slate-700">${summary.runnerInfo.name}</td>
                         <td class="p-3 text-center text-slate-600">${summary.lapCount}</td>
                         <td class="p-3 font-mono text-slate-600">${secondsToTime(summary.totalPredictedSeconds)}</td>
                         <td class="p-3 font-mono text-slate-600">${summary.totalActualSeconds > 0 ? secondsToTime(summary.totalActualSeconds) : '-:--:--'}</td>
                         <td class="p-3 font-mono">${diffHtml}</td>
+                        <td class="p-3 font-mono font-semibold text-sky-700">${secondsToPace(avgPaceSeconds)}</td>
                     `;
                     individualSummaryBody.appendChild(row);
                 }
